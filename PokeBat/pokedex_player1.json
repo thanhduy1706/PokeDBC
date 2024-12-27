@@ -1,0 +1,35 @@
+[
+  {
+    "Name": "Pikachu",
+    "HP": 7,
+    "Attack": 62,
+    "Defense": 45,
+    "SpecialAttack": 58,
+    "SpecialDefense": 53,
+    "Speed": 65,
+    "ElementalEffects": { "fire": 1.2, "water": 0.7 },
+    "Experience": 12
+  },
+  {
+    "Name": "Bulbasaur",
+    "HP": 6,
+    "Attack": 52,
+    "Defense": 55,
+    "SpecialAttack": 70,
+    "SpecialDefense": 60,
+    "Speed": 48,
+    "ElementalEffects": { "fire": 0.6, "water": 1.4 },
+    "Experience": 8
+  },
+  {
+    "Name": "NightBlade",
+    "HP": 8,
+    "Attack": 58,
+    "Defense": 51,
+    "SpecialAttack": 72,
+    "SpecialDefense": 68,
+    "Speed": 50,
+    "ElementalEffects": { "fire": 0.9, "water": 1.1 },
+    "Experience": 14
+  }
+]
