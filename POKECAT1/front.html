@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PokeWorld AutoMode</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        canvas {
+            border: 2px solid #333;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .status {
+            color: #666;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>PokeWorld</h1>
+    <div class="status" id="status">Press B to toggle AutoMode</div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const statusEl = document.getElementById("status");
+        const ws = new WebSocket("ws://localhost:8080/ws");
+        const CELL_SIZE = 20;
+        const GRID_SIZE = 20;
+        const AUTO_MOVE_INTERVAL = 500;
+        const AUTO_MODE_DURATION = 120000;
+
+        const state = {
+            world: [],
+            player: { X: 0, Y: 0 },
+            autoMode: false,
+            autoMoveInterval: null,
+            autoModeTimeout: null
+        };
+
+        const directions = [
+            { dx: 0, dy: -1 },
+            { dx: 0, dy: 1 },
+            { dx: -1, dy: 0 },
+            { dx: 1, dy: 0 }
+        ];
+
+        ws.onopen = () => console.log("Connected to server");
+        ws.onerror = error => console.error("WebSocket error:", error);
+
+        ws.onmessage = ({ data }) => {
+            try {
+                const parsedData = JSON.parse(data);
+                if (parsedData.player) state.player = parsedData.player;
+                if (parsedData.world) {
+                    state.world = parsedData.world;
+                    drawGame();
+                }
+            } catch (error) {
+                console.error("Error parsing data:", error);
+            }
+        };
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid and Pokemon
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    const hasPokemon = state.world[x]?.[y]?.Pokemon;
+                    ctx.fillStyle = hasPokemon ? "#ff6b6b" : "#f8f9fa";
+                    ctx.strokeStyle = "#dee2e6";
+                    ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                }
+            }
+
+            // Draw player
+            ctx.fillStyle = "#339af0";
+            ctx.fillRect(state.player.X * CELL_SIZE, state.player.Y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        }
+
+        function move(dx, dy) {
+            ws.send(JSON.stringify({ dx, dy }));
+            const newPos = {
+                X: (state.player.X + dx + GRID_SIZE) % GRID_SIZE,
+                Y: (state.player.Y + dy + GRID_SIZE) % GRID_SIZE
+            };
+
+            if (state.world[newPos.X]?.[newPos.Y]?.Pokemon) {
+                ws.send(JSON.stringify({ capture: true }));
+            }
+        }
+
+        function toggleAutoMode() {
+            state.autoMode = !state.autoMode;
+            statusEl.textContent = state.autoMode ? "AutoMode: Active" : "Press B to toggle AutoMode";
+
+            if (state.autoMode) {
+                state.autoMoveInterval = setInterval(() => {
+                    const { dx, dy } = directions[Math.floor(Math.random() * directions.length)];
+                    move(dx, dy);
+                }, AUTO_MOVE_INTERVAL);
+
+                state.autoModeTimeout = setTimeout(() => {
+                    state.autoMode = false;
+                    clearInterval(state.autoMoveInterval);
+                    statusEl.textContent = "AutoMode: Timed out";
+                }, AUTO_MODE_DURATION);
+            } else {
+                clearInterval(state.autoMoveInterval);
+                clearTimeout(state.autoModeTimeout);
+            }
+        }
+
+        document.addEventListener("keydown", ({ key }) => {
+            if (key.toLowerCase() === "b") return toggleAutoMode();
+
+            const moveMap = {
+                ArrowUp: [0, -1],
+                ArrowDown: [0, 1],
+                ArrowLeft: [-1, 0],
+                ArrowRight: [1, 0]
+            };
+
+            const [dx, dy] = moveMap[key] || [0, 0];
+            if (dx || dy) move(dx, dy);
+        });
+
+        drawGame();
+    </script>
+</body>
+
+</html>
