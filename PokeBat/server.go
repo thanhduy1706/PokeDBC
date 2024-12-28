@@ -21,7 +21,7 @@ type Pokemon struct {
 	Speed            int
 	ElementalEffects map[string]float64 // e.g., "fire": 1.5, "water": 0.8
 	Experience       int
-	IsFainted        bool  
+	IsFainted        bool
 }
 
 // Structure for receiving Pokémon selection from the client.
@@ -181,7 +181,7 @@ func handleBattle(gameState *GameState) {
 		// If the speeds are the same, you can either randomize or use the current turn order.
 		gameState.Turn = rand.Intn(2) + 1
 	}
-	
+
 	for {
 		var currentPlayer, opponent *Player
 		if gameState.Turn == 1 {
@@ -204,7 +204,7 @@ func handleBattle(gameState *GameState) {
 			return
 		}
 
-		//Converting action a string 
+		//Converting action a string
 		actionStr := strings.TrimSpace(string(actionBytes[:n]))
 		fmt.Println("Received action:", actionStr)
 
@@ -225,12 +225,12 @@ func handleBattle(gameState *GameState) {
 		case "attack":
 			isSpecial := rand.Intn(2) == 0 // Randomly decide if it's a special attack.
 			damage := calculateDamage(currentPlayer.Pokemons[currentPlayer.Active], opponent.Pokemons[opponent.Active], isSpecial)
-		
+
 			opponent.Pokemons[opponent.Active].HP -= damage
 			if opponent.Pokemons[opponent.Active].HP < 0 {
 				opponent.Pokemons[opponent.Active].HP = 0
 			}
-		
+
 			sendJSON(currentPlayer.Conn, fmt.Sprintf("You dealt %d damage to %s. Remaining HP: %d",
 				damage,
 				opponent.Pokemons[opponent.Active].Name,
@@ -240,12 +240,12 @@ func handleBattle(gameState *GameState) {
 				damage,
 				opponent.Pokemons[opponent.Active].Name,
 				opponent.Pokemons[opponent.Active].HP))
-		
+
 			// Check if the opponent's active Pokémon fainted.
 			if opponent.Pokemons[opponent.Active].HP == 0 {
 				opponent.Pokemons[opponent.Active].IsFainted = true // Mark the Pokémon as fainted with a flag.
 				sendJSON(opponent.Conn, fmt.Sprintf("%s fainted!", opponent.Pokemons[opponent.Active].Name))
-		
+
 				// Check if all Pokémon are fainted.
 				allFainted := true
 				for _, pkmn := range opponent.Pokemons {
@@ -254,7 +254,7 @@ func handleBattle(gameState *GameState) {
 						break
 					}
 				}
-		
+
 				if allFainted {
 					// All opponent's Pokémon have fainted, calculate experience and end the game.
 					sendJSON(currentPlayer.Conn, "You win!")
@@ -262,7 +262,7 @@ func handleBattle(gameState *GameState) {
 					distributeExperience(currentPlayer, opponent)
 					return
 				}
-		
+
 				// Switch to a new Pokémon if some are still available.
 				switchPokemon(opponent)
 			}
@@ -279,7 +279,7 @@ func handleBattle(gameState *GameState) {
 				distributeExperience(opponent, currentPlayer)
 				return
 
-			
+
 		}
 		// Switch the turn to the other player.
 		gameState.Turn = 3 - gameState.Turn // Alternates between 1 and 2.
@@ -292,19 +292,19 @@ func handleBattle(gameState *GameState) {
 		for _, pkmn := range losingPlayer.Pokemons {
 			totalExp += pkmn.Experience
 		}
-	
+
 		if totalExp == 0 {
 			sendJSON(winningPlayer.Conn, "No experience gained as the losing team has no accumulated experience.")
 			return
 		}
-	
+
 		// Each Pokémon in the winning team gets 1/3 of the total experience.
 		expShare := totalExp / 3
-	
+
 		for i := range winningPlayer.Pokemons {
 			winningPlayer.Pokemons[i].Experience += expShare
 		}
-	
+
 		for i := range winningPlayer.Pokemons {
 			beforeExp := winningPlayer.Pokemons[i].Experience
 			winningPlayer.Pokemons[i].Experience += expShare
@@ -317,7 +317,7 @@ func handleBattle(gameState *GameState) {
 				afterExp,
 			))
 		}
-		
+
 		sendJSON(winningPlayer.Conn, fmt.Sprintf("Each of your Pokémon gained %d experience.", expShare))
 	}
 
@@ -326,11 +326,11 @@ func main() {
 
 	// Load Pokémon data for both players from JSON files.
 	var pokedex1, pokedex2 []Pokemon
-	if err := LoadJSON("pokedex_player1.json", &pokedex1); err != nil { //Tải dữ 
+	if err := LoadJSON("PokeBat/pokedex_player1.json", &pokedex1); err != nil {
 		fmt.Println("Error loading pokedex_player1.json:", err)
 		return
 	}
-	if err := LoadJSON("pokedex_player2.json", &pokedex2); err != nil {
+	if err := LoadJSON("PokeBat/pokedex_player2.json", &pokedex2); err != nil {
 		fmt.Println("Error loading pokedex_player2.json:", err)
 		return
 	}
@@ -384,9 +384,9 @@ func main() {
 	handlePokemonSelection(&gameState.Player2, pokedex2, &gameState)
 
 	// Start the battle.
-	
+
 	fmt.Println("Starting the battle...")
 	handleBattle(&gameState)
-	
-	
+
+
 }
